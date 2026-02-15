@@ -59,7 +59,8 @@ Base.metadata.create_all(bind=engine)
 
 # ---------------- TEMPLATES ----------------
 templates = Jinja2Templates(directory="app/templates")
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+if os.path.isdir("app/static"):
+    app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # ---------------- AUTH HELPERS ----------------
 def seed_superadmin():
