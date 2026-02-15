@@ -1,4 +1,3 @@
-cat > ~/callcrm/app/main.py <<'EOF'
 from fastapi import FastAPI, Request, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -448,4 +447,3 @@ def admin_add_credits(request: Request, user_id: int = Form(...), amount: int = 
     db.close()
 
     return RedirectResponse("/admin", status_code=302)
-EOF
