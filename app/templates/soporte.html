@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Soporte</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--neon:#00eaff;--card:rgba(10,18,30,.65);}
+html,body{touch-action:manipulation;}
+body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;background:linear-gradient(rgba(0,0,0,.78),rgba(0,0,0,.88)),url("{{BG_URL}}") no-repeat center/cover fixed;display:flex;justify-content:center;align-items:flex-start;}
+.wrap{width:100%;max-width:900px;padding:18px 10px 40px;}
+.topbar{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.72);border:1px solid rgba(0,234,255,.18);border-radius:16px;padding:12px 14px;backdrop-filter:blur(6px);box-shadow:0 0 18px rgba(0,234,255,.12);margin-bottom:16px;}
+.btn{border:1px solid rgba(0,234,255,.35);background:rgba(0,20,35,.55);color:var(--neon);padding:10px 12px;border-radius:10px;letter-spacing:2px;font-size:11px;text-decoration:none;}
+.card{max-width:520px;margin:0 auto;background:var(--card);border-radius:18px;padding:18px;border:1px solid rgba(0,234,255,.15);backdrop-filter:blur(8px);box-shadow:0 0 22px rgba(0,234,255,.08);}
+.title{text-align:center;letter-spacing:4px;color:var(--neon);margin:8px 0 16px;}
+.btnSupport{display:block;text-align:center;text-decoration:none;padding:18px;border-radius:16px;background:rgba(0,20,40,.7);border:1px solid rgba(0,234,255,.4);color:var(--neon);letter-spacing:3px;box-shadow:0 0 20px rgba(0,234,255,.25);}
+.sub{text-align:center;opacity:.55;letter-spacing:2px;font-size:12px;margin-top:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="btn" href="/">INICIO</a>
+    <a class="btn" href="/logout">SALIR</a>
+  </div>
+
+  <div class="card">
+    <div class="title">SOPORTE</div>
+    <a class="btnSupport" href="{{TELEGRAM_URL}}" target="_blank">✈️ CONTACTAR AL VENDEDOR</a>
+    <div class="sub">Para recargas, reportes o dudas.</div>
+  </div>
+</div>
+</body>
+</html>

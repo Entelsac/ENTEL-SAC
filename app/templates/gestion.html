@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--neon:#00eaff;--card:rgba(10,18,30,.65);}
+html,body{touch-action:manipulation;}
+body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;background:linear-gradient(rgba(0,0,0,.78),rgba(0,0,0,.88)),url("{{BG_URL}}") no-repeat center/cover fixed;}
+.wrap{max-width:900px;margin:0 auto;padding:18px 10px 40px;}
+.topbar{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.72);border:1px solid rgba(0,234,255,.18);border-radius:16px;padding:12px 14px;backdrop-filter:blur(6px);box-shadow:0 0 18px rgba(0,234,255,.12);margin-bottom:18px;}
+.brand{display:flex;gap:10px;align-items:center;}
+.logo{width:34px;height:34px;border-radius:50%;border:2px solid var(--neon);display:flex;align-items:center;justify-content:center;color:var(--neon);box-shadow:0 0 12px rgba(0,234,255,.5);font-weight:600;}
+.brandname{font-size:14px;letter-spacing:2px;color:var(--neon);}
+.btn{border:1px solid rgba(0,234,255,.35);background:rgba(0,20,35,.55);color:var(--neon);padding:10px 12px;border-radius:10px;letter-spacing:2px;font-size:11px;text-decoration:none;white-space:nowrap;}
+.card{max-width:760px;margin:0 auto;background:var(--card);border-radius:18px;padding:16px;border:1px solid rgba(0,234,255,.15);backdrop-filter:blur(8px);box-shadow:0 0 22px rgba(0,234,255,.08);}
+.title{text-align:center;letter-spacing:4px;color:var(--neon);margin:8px 0 6px;}
+.sub{text-align:center;opacity:.55;letter-spacing:3px;font-size:12px;margin-bottom:12px;}
+.order{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:10px;}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.meta{opacity:.7;font-size:11px;letter-spacing:2px;margin-top:4px;}
+.status{color:var(--neon);font-size:11px;letter-spacing:2px;}
+.file{width:100%;color:#fff;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><div class="logo">E</div><div class="brandname">{{APP_TITLE}}</div></div>
+    <a class="btn" href="/">INICIO</a>
+  </div>
+
+  <div class="title">BANDEJA OPERADOR</div>
+  <div class="sub">Tomar pedido y subir PDFs (sin límite)</div>
+
+  <div class="card">
+    {% if orders|length == 0 %}
+      <div style="text-align:center;opacity:.6;padding:20px;">No hay pedidos...</div>
+    {% endif %}
+
+    {% for o in orders %}
+      <div class="order">
+        <div class="row">
+          <div>
+            <div><b>Cliente:</b> {{o.client_username}}</div>
+            <div class="meta"><b>Número:</b> {{o.phone}} · <b>ID:</b> {{o.id}}</div>
+            <div class="meta"><b>Mensaje:</b> {{o.message}}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="status">{{o.status|upper}}</div>
+            <div class="meta">Asignado: {{o.assigned_to if o.assigned_to else "-"}}</div>
+          </div>
+        </div>
+
+        <div class="row" style="align-items:center;">
+          {% if o.status == "pendiente" %}
+            <form method="post" action="/orders/take" style="margin:0;">
+              <input type="hidden" name="order_id" value="{{o.id}}">
+              <button class="btn" type="submit">TOMAR</button>
+            </form>
+            <div class="meta" style="flex:1;text-align:right;">Tómalo para subir PDFs</div>
+          {% else %}
+            <form method="post" action="/orders/upload" enctype="multipart/form-data" style="margin:0;display:flex;gap:8px;align-items:center;width:100%;">
+              <input type="hidden" name="order_id" value="{{o.id}}">
+              <input class="file" type="file" name="pdf_file" accept="application/pdf" required>
+              <button class="btn" type="submit">SUBIR PDF</button>
+            </form>
+            <a class="btn" href="/orders/{{o.id}}">VER PDFS</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+</body>
+</html>

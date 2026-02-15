@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Pedido</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--neon:#00eaff;--card:rgba(10,18,30,.65);}
+html,body{touch-action:manipulation;}
+body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;background:linear-gradient(rgba(0,0,0,.78),rgba(0,0,0,.88)),url("{{BG_URL}}") no-repeat center/cover fixed;}
+.wrap{max-width:900px;margin:0 auto;padding:18px 10px 40px;}
+.card{max-width:760px;margin:12px auto 0;background:var(--card);border-radius:18px;padding:16px;border:1px solid rgba(0,234,255,.15);backdrop-filter:blur(8px);}
+.title{text-align:center;letter-spacing:4px;color:var(--neon);margin:8px 0 12px;}
+.btn{display:inline-block;border:1px solid rgba(0,234,255,.35);background:rgba(0,20,35,.55);color:var(--neon);padding:10px 12px;border-radius:10px;letter-spacing:2px;font-size:11px;text-decoration:none;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 6px;border-top:1px solid rgba(255,255,255,.06);}
+.row:first-child{border-top:none;}
+.meta{opacity:.7;font-size:11px;letter-spacing:2px;margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="btn" href="/">INICIO</a>
+
+  <div class="card">
+    <div class="title">PEDIDO #{{order.id}}</div>
+    <div class="meta">Cliente: {{order.client_username}} · Estado: {{order.status|upper}} · Asignado: {{order.assigned_to if order.assigned_to else "-"}}</div>
+    <div class="meta">Número: {{order.phone}} · Mensaje: {{order.message}}</div>
+
+    <div class="title" style="margin-top:16px;font-size:14px;">PDFs</div>
+
+    {% if pdfs|length == 0 %}
+      <div class="meta" style="text-align:center;padding:14px;">Aún no hay PDFs cargados.</div>
+    {% endif %}
+
+    {% for p in pdfs %}
+      <div class="row">
+        <div>
+          <div>Reporte {{p.id}}</div>
+          <div class="meta">{{p.uploaded_at}}</div>
+        </div>
+        <a class="btn" href="/orders/file/{{p.id}}">VER PDF</a>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+</body>
+</html>
