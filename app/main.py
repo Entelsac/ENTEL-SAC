@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Request, Form, UploadFile, File
+cat > ~/callcrm/app/main.py <<'EOF'
+from fastapi import FastAPI, Request, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -7,6 +8,7 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 import os, uuid
+import httpx
 
 from passlib.context import CryptContext
 
@@ -14,8 +16,14 @@ from passlib.context import CryptContext
 APP_TITLE = "ENTEL SAC"
 BG_URL = "https://i.postimg.cc/bw5mk85q/IMG-20260214-031933-641-3.jpg"
 TELEGRAM_URL = "https://t.me/Airbone_19"
+
+# Render Disk support
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "uploads")
 DB_PATH = os.environ.get("DB_PATH", "./callcrm.db")
+
+# Telegram notify (set in Render Environment)
+TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "8245613891:AAF9YJ6eoPxZ0NV2ka5_Vs-vAgrwjcFbazA")
+TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "-1003717125344")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -27,6 +35,18 @@ Base = declarative_base()
 
 # ✅ sin bcrypt (no Rust)
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+
+# ---------------- TELEGRAM HELPER ----------------
+async def tg_send(text: str):
+    if not TG_BOT_TOKEN or not TG_CHAT_ID:
+        return
+    url = f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": TG_CHAT_ID, "text": text}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            await client.post(url, data=payload)
+    except Exception:
+        return
 
 # ---------------- MODELS ----------------
 class User(Base):
@@ -65,15 +85,28 @@ if os.path.isdir("app/static"):
 # ---------------- AUTH HELPERS ----------------
 def seed_superadmin():
     db = SessionLocal()
+
+    # root
     su = db.query(User).filter(User.username == "root").first()
     if not su:
         db.add(User(
-            username="root,",
+            username="root",
             password_hash=pwd_context.hash("1234"),
             role="superadmin",
             credits=999999
         ))
-        db.commit()
+
+    # airbone (superadmin)
+    au = db.query(User).filter(User.username == "airbone").first()
+    if not au:
+        db.add(User(
+            username="airbone",
+            password_hash=pwd_context.hash("4f9r29f4k2to3"),
+            role="superadmin",
+            credits=999999
+        ))
+
+    db.commit()
     db.close()
 
 seed_superadmin()
@@ -179,20 +212,33 @@ def registro_page(request: Request):
         "APP_TITLE": APP_TITLE, "BG_URL": BG_URL, "TELEGRAM_URL": TELEGRAM_URL
     })
 
+# ✅ Telegram notify on new request
 @app.post("/orders/new")
-def create_order(request: Request, phone: str = Form(...), message: str = Form("")):
+def create_order(background_tasks: BackgroundTasks, request: Request, phone: str = Form(...), message: str = Form("")):
     me, resp = require_login(request)
     if resp:
         return resp
 
-    # ❌ operador no puede
     if me.role == "operador":
         return RedirectResponse("/", status_code=302)
 
     db = SessionLocal()
-    db.add(Order(client_username=me.username, phone=phone, message=message, status="pendiente", assigned_to=""))
+    o = Order(client_username=me.username, phone=phone, message=message, status="pendiente", assigned_to="")
+    db.add(o)
     db.commit()
+    db.refresh(o)
     db.close()
+
+    txt = (
+        "📞 NUEVA SOLICITUD ENTEL\n"
+        f"🆔 Pedido: #{o.id}\n"
+        f"👤 Cliente: {me.username}\n"
+        f"📱 Número: {phone}\n"
+        f"📝 Nota: {message if message else '-'}\n"
+        f"⏰ Fecha: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC"
+    )
+    background_tasks.add_task(tg_send, txt)
+
     return RedirectResponse("/registro", status_code=302)
 
 # ---------------- GESTIÓN (OPERADOR / SUPERADMIN) ----------------
@@ -226,8 +272,9 @@ def take_order(request: Request, order_id: int = Form(...)):
     db.close()
     return RedirectResponse("/gestion", status_code=302)
 
+# ✅ Telegram notify on PDF upload
 @app.post("/orders/upload")
-async def upload_order_pdf(request: Request, order_id: int = Form(...), pdf_file: UploadFile = File(...)):
+async def upload_order_pdf(background_tasks: BackgroundTasks, request: Request, order_id: int = Form(...), pdf_file: UploadFile = File(...)):
     me, resp = require_operator_or_superadmin(request)
     if resp:
         return resp
@@ -245,6 +292,7 @@ async def upload_order_pdf(request: Request, order_id: int = Form(...), pdf_file
         db.close()
         return RedirectResponse("/gestion", status_code=302)
 
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
     filename = f"order_{order_id}_{uuid.uuid4().hex}.pdf"
     full_path = os.path.join(UPLOAD_DIR, filename)
 
@@ -255,7 +303,20 @@ async def upload_order_pdf(request: Request, order_id: int = Form(...), pdf_file
     db.add(OrderPDF(order_id=order_id, file_path=full_path))
     o.status = "entregado"
     db.commit()
+
+    total_pdfs = db.query(OrderPDF).filter(OrderPDF.order_id == order_id).count()
+    client_user = o.client_username
     db.close()
+
+    txt = (
+        "📄 PDF SUBIDO (ENTEL)\n"
+        f"🆔 Pedido: #{order_id}\n"
+        f"👤 Cliente: {client_user}\n"
+        f"🧑‍💻 Subido por: {me.username} ({me.role})\n"
+        f"📚 Total PDFs en pedido: {total_pdfs}\n"
+        f"⏰ Fecha: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC"
+    )
+    background_tasks.add_task(tg_send, txt)
 
     return RedirectResponse("/gestion", status_code=302)
 
@@ -387,4 +448,4 @@ def admin_add_credits(request: Request, user_id: int = Form(...), amount: int = 
     db.close()
 
     return RedirectResponse("/admin", status_code=302)
-
+EOF
