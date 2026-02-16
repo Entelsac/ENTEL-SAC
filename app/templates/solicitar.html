@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="title">SOLICITAR REPORTE</div>
+  <div class="subtitle">Solo clientes y admins pueden crear solicitudes.</div>
+
+  {% if request.query_params.get('ok') == '1' %}
+    <div class="alert" style="border-color:rgba(0,255,170,.35);background:rgba(0,255,170,.10);">
+      ✅ Solicitud enviada. Te avisaremos por aquí cuando suban PDFs.
+    </div>
+    <div style="height:10px"></div>
+  {% endif %}
+
+  <form method="post" action="/orders/new">
+    <input class="input" name="phone" placeholder="NÚMERO EN CONSULTA" required />
+    <input class="input" name="message" placeholder="NOTA (opcional)" />
+    <button class="btn red" type="submit">PROCESAR SOLICITUD</button>
+  </form>
+
+  <div class="small">Tiempo variable. PDFs sin límite.</div>
+</div>
+{% endblock %}

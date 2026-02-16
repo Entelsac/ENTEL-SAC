@@ -20,9 +20,10 @@ TELEGRAM_URL = "https://t.me/Airbone_19"
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "uploads")
 DB_PATH = os.environ.get("DB_PATH", "./callcrm.db")
 
-# Telegram notify (set in Render Environment)
-TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "8245613891:AAF9YJ6eoPxZ0NV2ka5_Vs-vAgrwjcFbazA")
-TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "-1003717125344")
+# Telegram notify (pon estos en Render -> Environment)
+# RECOMENDADO: NO dejes los defaults en producción
+TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "8245613891:AAF9YJ6eoPxZ0NV2ka5_Vs-vAgrwjcFbazA").strip()
+TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "-1003717125344").strip()
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -46,6 +47,11 @@ async def tg_send(text: str):
             await client.post(url, data=payload)
     except Exception:
         return
+
+def build_login_url(request: Request) -> str:
+    # base_url termina con /
+    base = str(request.base_url).rstrip("/")
+    return f"{base}/login"
 
 # ---------------- MODELS ----------------
 class User(Base):
@@ -133,6 +139,14 @@ def require_admin_panel(request: Request):
         return None, RedirectResponse("/", status_code=302)
     return u, None
 
+def require_superadmin(request: Request):
+    u, resp = require_login(request)
+    if resp:
+        return None, resp
+    if u.role != "superadmin":
+        return None, RedirectResponse("/", status_code=302)
+    return u, None
+
 def require_operator_or_superadmin(request: Request):
     u, resp = require_login(request)
     if resp:
@@ -163,7 +177,7 @@ def login(username: str = Form(...), password: str = Form(...)):
         return RedirectResponse("/login?err=1", status_code=302)
 
     resp = RedirectResponse("/", status_code=302)
-    resp.set_cookie("user", u.username, httponly=True)
+    resp.set_cookie("user", u.username, httponly=True, samesite="lax")
     return resp
 
 @app.get("/logout")
@@ -202,7 +216,6 @@ def registro_page(request: Request):
     me, resp = require_login(request)
     if resp:
         return resp
-    # ❌ operador no puede
     if me.role == "operador":
         return RedirectResponse("/", status_code=302)
 
@@ -395,22 +408,54 @@ def admin_page(request: Request):
     if resp:
         return resp
 
+    created = request.query_params.get("created") == "1"
+    created_info = None
+    if created:
+        created_info = {
+            "username": request.cookies.get("created_user", ""),
+            "password": request.cookies.get("created_pass", ""),
+            "role": request.cookies.get("created_role", ""),
+            "url": request.cookies.get("created_url", ""),
+        }
+
     db = SessionLocal()
     users = db.query(User).order_by(User.id.desc()).all()
     db.close()
 
-    return templates.TemplateResponse("admin.html", {
-        "request": request, "me": me, "users": users,
-        "APP_TITLE": APP_TITLE, "BG_URL": BG_URL, "TELEGRAM_URL": TELEGRAM_URL
+    response = templates.TemplateResponse("admin.html", {
+        "request": request,
+        "me": me,
+        "users": users,
+        "APP_TITLE": APP_TITLE,
+        "BG_URL": BG_URL,
+        "TELEGRAM_URL": TELEGRAM_URL,
+        "created_info": created_info
     })
 
+    # limpiar cookies del popup
+    if created:
+        response.delete_cookie("created_user")
+        response.delete_cookie("created_pass")
+        response.delete_cookie("created_role")
+        response.delete_cookie("created_url")
+
+    return response
+
 @app.post("/admin/create_user")
-def admin_create_user(request: Request, new_username: str = Form(...), new_password: str = Form(...), new_role: str = Form(...)):
+def admin_create_user(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    new_username: str = Form(...),
+    new_password: str = Form(...),
+    new_role: str = Form(...)
+):
     me, resp = require_admin_panel(request)
     if resp:
         return resp
 
+    new_username = new_username.strip()
     new_role = new_role.lower().strip()
+
     allowed_all = ["cliente", "operador", "admin"]
     allowed_admin_only = ["cliente"]
 
@@ -424,11 +469,34 @@ def admin_create_user(request: Request, new_username: str = Form(...), new_passw
     db = SessionLocal()
     exists = db.query(User).filter(User.username == new_username).first()
     if not exists:
-        db.add(User(username=new_username, password_hash=pwd_context.hash(new_password), role=new_role, credits=0))
+        db.add(User(
+            username=new_username,
+            password_hash=pwd_context.hash(new_password),
+            role=new_role,
+            credits=0
+        ))
         db.commit()
     db.close()
 
-    return RedirectResponse("/admin", status_code=302)
+    login_url = build_login_url(request)
+
+    # ✅ Mensaje tipo LAINDATA al Telegram cuando creas usuario
+    txt = (
+        "✨ ENTEL SAC ✨\n"
+        f"👤 User: {new_username}\n"
+        f"🔒 Password: {new_password}\n"
+        f"🧾 Rol: {new_role.upper()}\n"
+        f"🌐 URL: {login_url}"
+    )
+    background_tasks.add_task(tg_send, txt)
+
+    # ✅ Popup en el panel para copiar
+    r = RedirectResponse("/admin?created=1", status_code=302)
+    r.set_cookie("created_user", new_username, httponly=False, samesite="lax")
+    r.set_cookie("created_pass", new_password, httponly=False, samesite="lax")
+    r.set_cookie("created_role", new_role.upper(), httponly=False, samesite="lax")
+    r.set_cookie("created_url", login_url, httponly=False, samesite="lax")
+    return r
 
 @app.post("/admin/add_credits")
 def admin_add_credits(request: Request, user_id: int = Form(...), amount: int = Form(...)):
@@ -444,6 +512,31 @@ def admin_add_credits(request: Request, user_id: int = Form(...), amount: int = 
     if target and amount > 0:
         target.credits += amount
         db.commit()
+    db.close()
+
+    return RedirectResponse("/admin", status_code=302)
+
+# ✅ BORRAR USUARIO (solo superadmin)
+@app.post("/admin/delete_user")
+def admin_delete_user(request: Request, user_id: int = Form(...)):
+    me, resp = require_superadmin(request)
+    if resp:
+        return resp
+
+    db = SessionLocal()
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        db.close()
+        return RedirectResponse("/admin", status_code=302)
+
+    # Protecciones: no borrar cuentas claves / ni a sí mismo
+    protected = {"root", "airbone"}
+    if target.username in protected or target.username == me.username:
+        db.close()
+        return RedirectResponse("/admin", status_code=302)
+
+    db.delete(target)
+    db.commit()
     db.close()
 
     return RedirectResponse("/admin", status_code=302)

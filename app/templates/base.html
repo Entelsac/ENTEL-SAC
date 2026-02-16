@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- ✅ Sin zoom y correcto en Android -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+  <meta name="format-detection" content="telephone=no,email=no,address=no">
+
+  <title>{{ APP_TITLE }}</title>
+
+  <!-- versión para forzar recarga -->
+  <link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+
+<body style="--bg: {{ BG_URL }};">
+  <div class="bg">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
