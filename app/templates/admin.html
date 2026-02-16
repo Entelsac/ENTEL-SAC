@@ -23,77 +23,11 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
 .u2{opacity:.6;font-size:11px;margin-top:4px;letter-spacing:2px;}
 .cr{color:var(--neon);letter-spacing:2px;}
 .btnAdd{border:1px solid rgba(0,234,255,.35);background:rgba(0,20,35,.55);color:var(--neon);padding:10px 12px;border-radius:10px;font-family:'Orbitron',sans-serif;letter-spacing:2px;font-size:11px;cursor:pointer;white-space:nowrap;}
-.btnDel{border:1px solid rgba(255,70,110,.45);background:rgba(255,70,110,.10);color:#ff6f9a;padding:10px 12px;border-radius:10px;font-family:'Orbitron',sans-serif;letter-spacing:2px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.btnDel{border:1px solid rgba(255,90,120,.45);background:rgba(50,0,10,.45);color:#ffb7c6;padding:10px 12px;border-radius:10px;font-family:'Orbitron',sans-serif;letter-spacing:2px;font-size:11px;cursor:pointer;white-space:nowrap;}
 .note{opacity:.6;font-size:11px;letter-spacing:2px;margin-top:10px;text-align:center;}
-
-/* MODAL */
-.modal{
-  position:fixed; inset:0; background:rgba(0,0,0,.62);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999; padding:14px;
-}
-.modal.show{ display:flex; }
-.modal-card{
-  width:min(560px, 100%);
-  background:rgba(8,12,20,.92);
-  border:1px solid rgba(0,234,255,.22);
-  border-radius:18px;
-  box-shadow:0 0 30px rgba(0,234,255,.12);
-  padding:16px;
-}
-.modal-title{
-  text-align:center;
-  color:#9d7bff;
-  letter-spacing:3px;
-  margin:6px 0 14px;
-  font-weight:800;
-}
-.modal-row{
-  display:flex; justify-content:space-between; gap:12px;
-  padding:12px 12px;
-  border-radius:14px;
-  background:rgba(0,0,0,.35);
-  border:1px solid rgba(255,255,255,.08);
-  margin-bottom:10px;
-  font-weight:700;
-}
-.modal-row span{ opacity:.65; }
-.modal-actions{ display:flex; gap:10px; }
-.modal-actions button{
-  flex:1; padding:12px; border-radius:12px;
-  border:1px solid rgba(0,234,255,.25);
-  background:rgba(0,20,35,.55);
-  color:var(--neon);
-  font-family:'Orbitron',sans-serif;
-  letter-spacing:2px;
-  cursor:pointer;
-}
-.modal-actions .close{
-  border:1px solid rgba(255,70,110,.35);
-  color:#ff6f9a;
-  background:rgba(255,70,110,.10);
-}
 </style>
 </head>
 <body>
-
-<!-- MODAL USUARIO CREADO -->
-<div id="createdModal" class="modal">
-  <div class="modal-card">
-    <div class="modal-title">✨ USUARIO CREADO ✨</div>
-
-    <div class="modal-row"><span>Usuario:</span><b id="mUser"></b></div>
-    <div class="modal-row"><span>Contraseña:</span><b id="mPass"></b></div>
-    <div class="modal-row"><span>Rol:</span><b id="mRole"></b></div>
-    <div class="modal-row"><span>URL:</span><b id="mUrl" style="font-size:12px; letter-spacing:1px;"></b></div>
-
-    <div class="modal-actions">
-      <button onclick="copyCreated()">COPIAR</button>
-      <button class="close" onclick="closeCreated()">CERRAR</button>
-    </div>
-  </div>
-</div>
-
 <div class="wrap">
   <div class="topbar">
     <a class="btn" href="/">INICIO</a>
@@ -106,7 +40,7 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
     <form method="post" action="/admin/create_user">
       <div class="grid">
         <input name="new_username" placeholder="NUEVO USUARIO" required>
-        <input name="new_password" type="password" placeholder="CONTRASEÑA" required>
+        <input name="new_password" placeholder="CONTRASEÑA" required>
       </div>
 
       <div style="margin-top:10px;">
@@ -119,7 +53,7 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
         </select>
       </div>
 
-      <button class="btnMain">CREAR USUARIO</button>
+      <button class="btnMain" type="submit">GUARDAR</button>
     </form>
 
     <div class="note">
@@ -149,14 +83,10 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
               <button class="btnAdd" type="submit">+ ADD</button>
             </form>
 
-            <!-- BORRAR (no root/airbone/yo) -->
-            {% if u.username not in ["root","airbone"] and u.username != me.username %}
+            {% if u.role != "superadmin" %}
               <form method="post" action="/admin/delete_user" style="margin:0;">
                 <input type="hidden" name="user_id" value="{{u.id}}">
-                <button class="btnDel" type="submit"
-                  onclick="return confirm('¿Seguro que deseas ELIMINAR a {{u.username}}?');">
-                  ELIMINAR
-                </button>
+                <button class="btnDel" type="submit">BORRAR</button>
               </form>
             {% endif %}
           {% endif %}
@@ -165,40 +95,5 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
     {% endfor %}
   </div>
 </div>
-
-<script>
-function closeCreated(){
-  document.getElementById("createdModal").classList.remove("show");
-}
-
-function copyCreated(){
-  const user = document.getElementById("mUser").innerText;
-  const pass = document.getElementById("mPass").innerText;
-  const role = document.getElementById("mRole").innerText;
-  const url  = document.getElementById("mUrl").innerText;
-
-  const text =
-`✨ENTEL SAC✨
-👤 User: ${user}
-🔒 Password: ${pass}
-🧾 Rol: ${role}
-🌐 URL: ${url}`;
-
-  navigator.clipboard.writeText(text).then(()=>{});
-}
-
-(function(){
-  const created = {{ "true" if created_info and created_info.username else "false" }};
-  if(!created) return;
-
-  document.getElementById("mUser").innerText = "{{ created_info.username if created_info else '' }}";
-  document.getElementById("mPass").innerText = "{{ created_info.password if created_info else '' }}";
-  document.getElementById("mRole").innerText = "{{ created_info.role if created_info else '' }}";
-  document.getElementById("mUrl").innerText  = "{{ created_info.url if created_info else '' }}";
-
-  document.getElementById("createdModal").classList.add("show");
-})();
-</script>
-
 </body>
 </html>
