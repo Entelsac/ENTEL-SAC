@@ -20,7 +20,7 @@ TELEGRAM_URL = "https://t.me/Airbone_19"
 ORDER_COST = 20  # 20 créditos por registro de llamadas
 
 # ✅ URL pública real (Render / dominio)
-PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://entel-sac.onrender.com").rstrip("/")
 PUBLIC_LOGIN_URL = f"{PUBLIC_BASE_URL}/login"
 
 # Render Disk support
