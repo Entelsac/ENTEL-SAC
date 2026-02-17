@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Request, Form, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import FastAPI, Request, Form, UploadFile, File, BackgroundTasks
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from sqlalchemy import create_engine, Column, Integer, String, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
+
 import os, uuid
 import httpx
 
@@ -15,18 +17,20 @@ APP_TITLE = "ENTEL SAC"
 BG_URL = "https://i.postimg.cc/bw5mk85q/IMG-20260214-031933-641-3.jpg"
 TELEGRAM_URL = "https://t.me/Airbone_19"
 
-# Dominio para el mensaje "URL: ..."
-BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
+# URL pública para el mensaje en Telegram (en Render pon tu URL real)
+PUBLIC_URL = os.environ.get("PUBLIC_URL", "http://127.0.0.1:8000")
 
-# Storage (Render: usa Disk + env vars)
+# Paths (Render Disk / local)
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "uploads")
 DB_PATH = os.environ.get("DB_PATH", "./callcrm.db")
 
-# Telegram (Render Environment Variables)
+# Telegram notify (EN Render lo pones en Environment)
 TG_BOT_TOKEN = os.environ.get("TG_BOT_TOKEN", "8245613891:AAF9YJ6eoPxZ0NV2ka5_Vs-vAgrwjcFbazA")
 TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "-1003717125344")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs("app/templates", exist_ok=True)
+os.makedirs("app/static", exist_ok=True)
 
 app = FastAPI(title=APP_TITLE)
 
@@ -78,8 +82,10 @@ class OrderPDF(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# ---------------- TEMPLATES ----------------
+# ---------------- TEMPLATES + STATIC ----------------
 templates = Jinja2Templates(directory="app/templates")
+# Montar static SIEMPRE porque ya creamos la carpeta arriba
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # ---------------- AUTH HELPERS ----------------
 def seed_superadmin():
@@ -163,6 +169,7 @@ def login(username: str = Form(...), password: str = Form(...)):
         return RedirectResponse("/login?err=1", status_code=302)
 
     resp = RedirectResponse("/", status_code=302)
+    # httponly para que no lo lea JS
     resp.set_cookie("user", u.username, httponly=True)
     return resp
 
@@ -196,14 +203,14 @@ def dashboard(request: Request):
         "TELEGRAM_URL": TELEGRAM_URL
     })
 
-# ---------------- “REGISTRO” (PEDIDO) ----------------
+# ---------------- REGISTRO DE LLAMADAS ----------------
 @app.get("/registro", response_class=HTMLResponse)
 def registro_page(request: Request):
     me, resp = require_login(request)
     if resp:
         return resp
 
-    # operador NO accede (como pediste)
+    # ❌ operador no puede
     if me.role == "operador":
         return RedirectResponse("/", status_code=302)
 
@@ -212,6 +219,7 @@ def registro_page(request: Request):
         "APP_TITLE": APP_TITLE, "BG_URL": BG_URL, "TELEGRAM_URL": TELEGRAM_URL
     })
 
+# ✅ Telegram notify on new request
 @app.post("/orders/new")
 def create_order(background_tasks: BackgroundTasks, request: Request, phone: str = Form(...), message: str = Form("")):
     me, resp = require_login(request)
@@ -229,7 +237,7 @@ def create_order(background_tasks: BackgroundTasks, request: Request, phone: str
     db.close()
 
     txt = (
-        "📩 NUEVA SOLICITUD\n"
+        "📞 NUEVA SOLICITUD ENTEL\n"
         f"🆔 Pedido: #{o.id}\n"
         f"👤 Cliente: {me.username}\n"
         f"📱 Número: {phone}\n"
@@ -271,13 +279,19 @@ def take_order(request: Request, order_id: int = Form(...)):
     db.close()
     return RedirectResponse("/gestion", status_code=302)
 
+# ✅ Telegram notify on PDF upload
 @app.post("/orders/upload")
-async def upload_order_pdf(background_tasks: BackgroundTasks, request: Request, order_id: int = Form(...), pdf_file: UploadFile = File(...)):
+async def upload_order_pdf(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    order_id: int = Form(...),
+    pdf_file: UploadFile = File(...)
+):
     me, resp = require_operator_or_superadmin(request)
     if resp:
         return resp
 
-    if not pdf_file.filename.lower().endswith(".pdf"):
+    if not pdf_file.filename or not pdf_file.filename.lower().endswith(".pdf"):
         return RedirectResponse("/gestion", status_code=302)
 
     db = SessionLocal()
@@ -286,6 +300,7 @@ async def upload_order_pdf(background_tasks: BackgroundTasks, request: Request, 
         db.close()
         return RedirectResponse("/gestion", status_code=302)
 
+    # operador solo puede subir si lo tiene asignado; superadmin puede siempre
     if me.role != "superadmin" and o.assigned_to != me.username:
         db.close()
         return RedirectResponse("/gestion", status_code=302)
@@ -295,12 +310,6 @@ async def upload_order_pdf(background_tasks: BackgroundTasks, request: Request, 
     full_path = os.path.join(UPLOAD_DIR, filename)
 
     content = await pdf_file.read()
-
-    # ✅ VALIDACIÓN PDF REAL (evita “pdf” que es HTML / basura)
-    if not content.startswith(b"%PDF") or len(content) < 800:
-        db.close()
-        return RedirectResponse("/gestion", status_code=302)
-
     with open(full_path, "wb") as f:
         f.write(content)
 
@@ -313,7 +322,7 @@ async def upload_order_pdf(background_tasks: BackgroundTasks, request: Request, 
     db.close()
 
     txt = (
-        "📄 PDF SUBIDO\n"
+        "📄 PDF SUBIDO (ENTEL)\n"
         f"🆔 Pedido: #{order_id}\n"
         f"👤 Cliente: {client_user}\n"
         f"🧑‍💻 Subido por: {me.username} ({me.role})\n"
@@ -347,36 +356,68 @@ def order_details(request: Request, order_id: int):
         "APP_TITLE": APP_TITLE, "BG_URL": BG_URL, "TELEGRAM_URL": TELEGRAM_URL
     })
 
-# ✅ FIX “formato no válido”: NO REDIRECTS en descargas, usar HTTP errors
+# ABRIR (inline)
 @app.get("/orders/file/{pdf_id}")
-def download_pdf(request: Request, pdf_id: int):
-    me = get_current_user(request)
-    if not me:
-        raise HTTPException(status_code=401, detail="No autorizado. Inicia sesión.")
+def open_pdf_inline(request: Request, pdf_id: int):
+    me, resp = require_login(request)
+    if resp:
+        return resp
 
     db = SessionLocal()
     pdf = db.query(OrderPDF).filter(OrderPDF.id == pdf_id).first()
     if not pdf:
         db.close()
-        raise HTTPException(status_code=404, detail="PDF no encontrado.")
+        return RedirectResponse("/", status_code=302)
 
     order = db.query(Order).filter(Order.id == pdf.order_id).first()
     db.close()
+
     if not order:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado.")
+        return RedirectResponse("/", status_code=302)
 
     if me.role == "cliente" and order.client_username != me.username:
-        raise HTTPException(status_code=403, detail="No tienes permiso para ver este PDF.")
+        return RedirectResponse("/", status_code=302)
 
     if not os.path.exists(pdf.file_path):
-        raise HTTPException(status_code=404, detail="Archivo no existe en disco.")
+        return RedirectResponse("/", status_code=302)
 
-    return FileResponse(
-        path=pdf.file_path,
-        media_type="application/pdf",
-        filename="reporte.pdf",
-        headers={"Content-Disposition": 'inline; filename="reporte.pdf"'}
-    )
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "no-store",
+    }
+    return FileResponse(pdf.file_path, media_type="application/pdf", headers=headers)
+
+# DESCARGAR (attachment) -> evita el error del visor en muchos celulares
+@app.get("/orders/download/{pdf_id}")
+def download_pdf_attachment(request: Request, pdf_id: int):
+    me, resp = require_login(request)
+    if resp:
+        return resp
+
+    db = SessionLocal()
+    pdf = db.query(OrderPDF).filter(OrderPDF.id == pdf_id).first()
+    if not pdf:
+        db.close()
+        return RedirectResponse("/", status_code=302)
+
+    order = db.query(Order).filter(Order.id == pdf.order_id).first()
+    db.close()
+
+    if not order:
+        return RedirectResponse("/", status_code=302)
+
+    if me.role == "cliente" and order.client_username != me.username:
+        return RedirectResponse("/", status_code=302)
+
+    if not os.path.exists(pdf.file_path):
+        return RedirectResponse("/", status_code=302)
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="reporte_{pdf_id}.pdf"',
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "no-store",
+    }
+    return FileResponse(pdf.file_path, media_type="application/pdf", headers=headers)
 
 # ---------------- COMPRAR CRÉDITOS ----------------
 @app.get("/planes", response_class=HTMLResponse)
@@ -415,22 +456,22 @@ def admin_page(request: Request):
 
     return templates.TemplateResponse("admin.html", {
         "request": request, "me": me, "users": users,
-        "APP_TITLE": APP_TITLE, "BG_URL": BG_URL, "TELEGRAM_URL": TELEGRAM_URL,
-        "BASE_URL": BASE_URL
+        "APP_TITLE": APP_TITLE, "BG_URL": BG_URL, "TELEGRAM_URL": TELEGRAM_URL
     })
 
-# ✅ Crear usuario + Telegram mensaje “LAINDATA PERU”
 @app.post("/admin/create_user")
-def admin_create_user(background_tasks: BackgroundTasks, request: Request,
-                      new_username: str = Form(...), new_password: str = Form(...), new_role: str = Form(...)):
+def admin_create_user(
+    background_tasks: BackgroundTasks,
+    request: Request,
+    new_username: str = Form(...),
+    new_password: str = Form(...),
+    new_role: str = Form(...)
+):
     me, resp = require_admin_panel(request)
     if resp:
         return resp
 
-    new_username = new_username.strip()
-    new_password = new_password.strip()
     new_role = new_role.lower().strip()
-
     allowed_all = ["cliente", "operador", "admin"]
     allowed_admin_only = ["cliente"]
 
@@ -443,21 +484,22 @@ def admin_create_user(background_tasks: BackgroundTasks, request: Request,
 
     db = SessionLocal()
     exists = db.query(User).filter(User.username == new_username).first()
+    created = False
     if not exists:
         db.add(User(username=new_username, password_hash=pwd_context.hash(new_password), role=new_role, credits=0))
         db.commit()
-        db.close()
+        created = True
+    db.close()
 
-        # ✅ Mensaje estilo que pediste
+    # ✅ Mensaje Telegram EXACTO como pediste
+    if created:
         txt = (
             "✨ENTEL SAC✨\n"
             f"👤 User: {new_username}\n"
             f"🔒 Password:  {new_password}\n"
-            f"🌐 URL: {BASE_URL}/login"
+            f"🌐 URL: {PUBLIC_URL}/login"
         )
         background_tasks.add_task(tg_send, txt)
-    else:
-        db.close()
 
     return RedirectResponse("/admin", status_code=302)
 
@@ -479,7 +521,7 @@ def admin_add_credits(request: Request, user_id: int = Form(...), amount: int = 
 
     return RedirectResponse("/admin", status_code=302)
 
-# ✅ BORRAR USUARIO (solo superadmin)
+# ✅ BORRAR USUARIO (solo superadmin, no borra superadmins)
 @app.post("/admin/delete_user")
 def admin_delete_user(request: Request, user_id: int = Form(...)):
     me, resp = require_admin_panel(request)
@@ -490,10 +532,17 @@ def admin_delete_user(request: Request, user_id: int = Form(...)):
         return RedirectResponse("/admin", status_code=302)
 
     db = SessionLocal()
-    target = db.query(User).filter(User.id == user_id).first()
-    if target and target.role != "superadmin":  # evita borrar superadmins
-        db.delete(target)
-        db.commit()
+    u = db.query(User).filter(User.id == user_id).first()
+    if not u:
+        db.close()
+        return RedirectResponse("/admin", status_code=302)
+
+    if u.role == "superadmin":
+        db.close()
+        return RedirectResponse("/admin", status_code=302)
+
+    db.delete(u)
+    db.commit()
     db.close()
 
     return RedirectResponse("/admin", status_code=302)

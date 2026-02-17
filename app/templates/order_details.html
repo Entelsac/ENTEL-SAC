@@ -13,7 +13,7 @@ body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;back
 .card{max-width:760px;margin:12px auto 0;background:var(--card);border-radius:18px;padding:16px;border:1px solid rgba(0,234,255,.15);backdrop-filter:blur(8px);}
 .title{text-align:center;letter-spacing:4px;color:var(--neon);margin:8px 0 12px;}
 .btn{display:inline-block;border:1px solid rgba(0,234,255,.35);background:rgba(0,20,35,.55);color:var(--neon);padding:10px 12px;border-radius:10px;letter-spacing:2px;font-size:11px;text-decoration:none;}
-.row{display:flex;justify-content:space-between;align-items:center;padding:12px 6px;border-top:1px solid rgba(255,255,255,.06);}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 6px;border-top:1px solid rgba(255,255,255,.06);gap:10px;}
 .row:first-child{border-top:none;}
 .meta{opacity:.7;font-size:11px;letter-spacing:2px;margin-top:4px;}
 </style>
@@ -39,7 +39,13 @@ body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;back
           <div>Reporte {{p.id}}</div>
           <div class="meta">{{p.uploaded_at}}</div>
         </div>
-        <a class="btn" href="/orders/file/{{p.id}}" target="_blank" rel="noopener">VER PDF</a>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+          <!-- ✅ ABRIR (inline) -->
+          <a class="btn" href="/orders/file/{{p.id}}" target="_blank">ABRIR</a>
+          <!-- ✅ DESCARGAR (attachment) -->
+          <a class="btn" href="/orders/download/{{p.id}}">DESCARGAR</a>
+        </div>
       </div>
     {% endfor %}
   </div>

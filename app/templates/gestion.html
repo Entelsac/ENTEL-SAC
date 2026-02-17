@@ -32,7 +32,7 @@ body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;back
     <a class="btn" href="/">INICIO</a>
   </div>
 
-  <div class="title">BANDEJA OPERADOR</div>
+  <div class="title">GESTIÓN PEDIDOS</div>
   <div class="sub">Tomar pedido y subir PDFs (sin límite)</div>
 
   <div class="card">
@@ -62,7 +62,9 @@ body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;back
             </form>
             <div class="meta" style="flex:1;text-align:right;">Tómalo para subir PDFs</div>
           {% else %}
-            <form method="post" action="/orders/upload" enctype="multipart/form-data" style="margin:0;display:flex;gap:8px;align-items:center;width:100%;">
+            <!-- ✅ enctype multipart y name="pdf_file" -->
+            <form method="post" action="/orders/upload" enctype="multipart/form-data"
+                  style="margin:0;display:flex;gap:8px;align-items:center;width:100%;">
               <input type="hidden" name="order_id" value="{{o.id}}">
               <input class="file" type="file" name="pdf_file" accept="application/pdf" required>
               <button class="btn" type="submit">SUBIR PDF</button>
@@ -76,4 +78,3 @@ body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;back
 </div>
 </body>
 </html>
-
