@@ -10,19 +10,24 @@
 html,body{touch-action:manipulation;}
 body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;background:linear-gradient(rgba(0,0,0,.78),rgba(0,0,0,.88)),url("{{BG_URL}}") no-repeat center/cover fixed;display:flex;justify-content:center;align-items:center;}
 .card{width:92%;max-width:460px;background:var(--card);border-radius:20px;padding:25px;border:1px solid rgba(0,234,255,.2);box-shadow:0 0 25px rgba(0,234,255,.10);backdrop-filter:blur(8px);}
-.title{text-align:center;letter-spacing:4px;color:var(--neon);margin-bottom:20px;text-shadow:0 0 10px rgba(0,234,255,.35);}
+.title{text-align:center;letter-spacing:4px;color:var(--neon);margin-bottom:14px;text-shadow:0 0 10px rgba(0,234,255,.35);}
 input{width:100%;padding:16px;border-radius:12px;border:1px solid rgba(0,234,255,.3);background:rgba(0,0,0,.6);color:#fff;text-align:center;font-family:'Orbitron',sans-serif;margin-bottom:12px;}
 .btn{width:100%;padding:16px;border-radius:14px;border:none;background:linear-gradient(90deg,var(--neon),#0088ff);color:#001018;font-weight:bold;letter-spacing:2px;box-shadow:0 0 20px rgba(0,234,255,.5);cursor:pointer;font-family:'Orbitron',sans-serif;}
 .info{text-align:center;font-size:11px;opacity:.6;margin:10px 0 14px;letter-spacing:2px;}
 .top{position:fixed;top:14px;left:14px;}
 a{color:var(--neon);text-decoration:none;border:1px solid rgba(0,234,255,.35);padding:10px 12px;border-radius:10px;background:rgba(0,20,35,.55);letter-spacing:2px;font-size:11px;}
+.alert{margin:0 0 12px;padding:12px;border-radius:12px;border:1px solid rgba(255,80,120,.35);background:rgba(255,80,120,.12);text-align:center;}
 </style>
 </head>
 <body>
   <div class="top"><a href="/">INICIO</a></div>
 
   <div class="card">
-    <div class="title">SOLICITAR REGISTRO DE LLAMADAS</div>
+    <div class="title">SOLICITAR REGISTRO</div>
+
+    {% if error_msg %}
+      <div class="alert">{{ error_msg }}</div>
+    {% endif %}
 
     {% if me.role == "operador" %}
       <div class="info">OPERADOR no tiene acceso a esta sección.</div>
@@ -30,11 +35,10 @@ a{color:var(--neon);text-decoration:none;border:1px solid rgba(0,234,255,.35);pa
       <form method="post" action="/orders/new">
         <input name="phone" placeholder="NÚMERO EN CONSULTA" required>
         <input name="message" placeholder="MENSAJE (opcional)">
-        <div class="info">TIEMPO ESTIMADO: 10–30 MIN</div>
+        <div class="info">COSTO: {{ORDER_COST}} CRÉDITOS · TIEMPO: 10–30 MIN</div>
         <button class="btn">PROCESAR SOLICITUD</button>
       </form>
     {% endif %}
   </div>
 </body>
 </html>
-

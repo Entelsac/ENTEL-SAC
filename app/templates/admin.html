@@ -8,24 +8,143 @@
 <style>
 :root{--neon:#00eaff;--card:rgba(10,18,30,.65);}
 html,body{touch-action:manipulation;}
-body{margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;background:linear-gradient(rgba(0,0,0,.78),rgba(0,0,0,.88)),url("{{BG_URL}}") no-repeat center/cover fixed;}
+body{
+  margin:0;min-height:100vh;color:#fff;font-family:'Orbitron',sans-serif;
+  background:linear-gradient(rgba(0,0,0,.78),rgba(0,0,0,.88)),url("{{BG_URL}}") no-repeat center/cover fixed;
+}
 .wrap{max-width:900px;margin:0 auto;padding:18px 10px 40px;}
-.topbar{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.72);border:1px solid rgba(0,234,255,.18);border-radius:16px;padding:12px 14px;backdrop-filter:blur(6px);box-shadow:0 0 18px rgba(0,234,255,.12);margin-bottom:16px;}
-.btn{border:1px solid rgba(0,234,255,.35);background:rgba(0,20,35,.55);color:var(--neon);padding:10px 12px;border-radius:10px;letter-spacing:2px;font-size:11px;text-decoration:none;}
-.card{max-width:560px;margin:0 auto;background:var(--card);border-radius:18px;padding:16px;border:1px solid rgba(0,234,255,.15);backdrop-filter:blur(8px);box-shadow:0 0 22px rgba(0,234,255,.08);}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(0,0,0,.72);
+  border:1px solid rgba(0,234,255,.18);
+  border-radius:16px;padding:12px 14px;
+  backdrop-filter:blur(6px);
+  box-shadow:0 0 18px rgba(0,234,255,.12);
+  margin-bottom:16px;
+}
+.btn{
+  border:1px solid rgba(0,234,255,.35);
+  background:rgba(0,20,35,.55);
+  color:var(--neon);
+  padding:10px 12px;border-radius:10px;
+  letter-spacing:2px;font-size:11px;text-decoration:none;
+}
+.card{
+  max-width:560px;margin:0 auto;background:var(--card);
+  border-radius:18px;padding:16px;border:1px solid rgba(0,234,255,.15);
+  backdrop-filter:blur(8px);box-shadow:0 0 22px rgba(0,234,255,.08);
+}
 .title{text-align:center;letter-spacing:4px;color:var(--neon);margin:8px 0 12px;}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0,234,255,.25);background:rgba(0,0,0,.55);color:#fff;font-family:'Orbitron',sans-serif;}
-.btnMain{width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--neon),#0088ff);color:#001018;font-weight:600;letter-spacing:2px;box-shadow:0 0 18px rgba(0,234,255,.35);cursor:pointer;margin-top:8px;}
+input, select{
+  width:100%;padding:12px;border-radius:10px;
+  border:1px solid rgba(0,234,255,.25);
+  background:rgba(0,0,0,.55);color:#fff;font-family:'Orbitron',sans-serif;
+}
+.btnMain{
+  width:100%;padding:12px;border-radius:10px;border:none;
+  background:linear-gradient(90deg,var(--neon),#0088ff);
+  color:#001018;font-weight:600;letter-spacing:2px;
+  box-shadow:0 0 18px rgba(0,234,255,.35);
+  cursor:pointer;margin-top:8px;
+}
 .sub{opacity:.55;text-align:center;letter-spacing:3px;margin:18px 0 8px;font-size:12px;}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 6px;border-top:1px solid rgba(255,255,255,.06);}
+.row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;padding:12px 6px;border-top:1px solid rgba(255,255,255,.06);
+}
 .row:first-child{border-top:none;}
 .u2{opacity:.6;font-size:11px;margin-top:4px;letter-spacing:2px;}
 .cr{color:var(--neon);letter-spacing:2px;}
-.btnAdd{border:1px solid rgba(0,234,255,.35);background:rgba(0,20,35,.55);color:var(--neon);padding:10px 12px;border-radius:10px;font-family:'Orbitron',sans-serif;letter-spacing:2px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.btnAdd{
+  border:1px solid rgba(0,234,255,.35);
+  background:rgba(0,20,35,.55);
+  color:var(--neon);
+  padding:10px 12px;border-radius:10px;
+  font-family:'Orbitron',sans-serif;
+  letter-spacing:2px;font-size:11px;cursor:pointer;white-space:nowrap;
+}
+.btnDel{
+  border:1px solid rgba(255,60,90,.35);
+  background:rgba(40,0,10,.35);
+  color:#ff93b2;
+  padding:10px 12px;border-radius:10px;
+  font-family:'Orbitron',sans-serif;
+  letter-spacing:2px;font-size:11px;cursor:pointer;white-space:nowrap;
+}
 .note{opacity:.6;font-size:11px;letter-spacing:2px;margin-top:10px;text-align:center;}
+.alert{
+  margin:10px 0 0;
+  padding:12px;border-radius:12px;
+  border:1px solid rgba(255,80,120,.35);
+  background:rgba(255,80,120,.12);
+  text-align:center;letter-spacing:1px;
+}
+
+/* ---- MODAL "USUARIO CREADO" ---- */
+.modal{
+  position:fixed;inset:0;
+  display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.65);
+  z-index:9999;
+  padding:16px;
+}
+.modal.show{display:flex;}
+.modal-card{
+  width:min(560px, 100%);
+  background:rgba(10,18,30,.92);
+  border:1px solid rgba(0,234,255,.18);
+  border-radius:18px;
+  box-shadow:0 0 28px rgba(0,234,255,.10);
+  backdrop-filter:blur(10px);
+  padding:16px;
+}
+.modal-title{
+  text-align:center;
+  color:#9d7bff;
+  font-weight:700;
+  letter-spacing:3px;
+  margin:6px 0 14px;
+}
+.mrow{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 12px;
+  border-radius:14px;
+  background:rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.08);
+  margin-bottom:10px;
+  font-weight:700;
+}
+.mrow span{opacity:.65;letter-spacing:2px;}
+.mactions{display:flex;gap:10px;margin-top:8px;}
+.mbtn{
+  flex:1;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(0,234,255,.35);
+  background:rgba(0,20,35,.55);
+  color:var(--neon);
+  font-family:'Orbitron',sans-serif;
+  letter-spacing:2px;
+  cursor:pointer;
+}
+.mbtn.red{
+  border:1px solid rgba(255,60,90,.35);
+  color:#ff8aa8;
+}
+.smallcopy{
+  text-align:center;
+  margin-top:10px;
+  opacity:.6;
+  font-size:11px;
+  letter-spacing:2px;
+}
 </style>
 </head>
+
 <body>
 <div class="wrap">
   <div class="topbar">
@@ -36,10 +155,14 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
   <div class="card">
     <div class="title">PANEL (ADMIN)</div>
 
+    {% if error_msg %}
+      <div class="alert">{{ error_msg }}</div>
+    {% endif %}
+
     <form method="post" action="/admin/create_user">
       <div class="grid">
         <input name="new_username" placeholder="NUEVO USUARIO" required>
-        <input name="new_password" type="password" placeholder="CONTRASEÑA" required>
+        <input name="new_password" type="text" placeholder="CONTRASEÑA" required>
       </div>
 
       <div style="margin-top:10px;">
@@ -52,14 +175,14 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
         </select>
       </div>
 
-      <button class="btnMain">GUARDAR</button>
+      <button class="btnMain" type="submit">CREAR USUARIO</button>
     </form>
 
     <div class="note">
       {% if me.role != "superadmin" %}
-        Solo el SÚPER ADMIN puede crear ADMIN/OPERADOR, borrar usuarios y dar créditos.
+        Solo el SÚPER ADMIN puede crear ADMIN/OPERADOR y dar créditos.
       {% else %}
-        SÚPER ADMIN: puedes crear ADMIN/OPERADOR, borrar usuarios y dar créditos.
+        SÚPER ADMIN: puedes crear ADMIN/OPERADOR y dar créditos.
       {% endif %}
     </div>
 
@@ -81,21 +204,56 @@ input, select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(0
               <input name="amount" type="number" min="1" value="1" style="width:90px;">
               <button class="btnAdd" type="submit">+ ADD</button>
             </form>
-          {% endif %}
 
-          {% if me.role == "superadmin" and u.role != "superadmin" %}
-            <form method="post" action="/admin/delete_user" style="margin:0;">
-              <input type="hidden" name="user_id" value="{{u.id}}">
-              <button class="btnAdd" type="submit"
-                style="border-color: rgba(255,80,120,.35); color:#ffd2df;">
-                BORRAR
-              </button>
-            </form>
+            {% if u.username not in ["root","airbone"] and u.username != me.username %}
+              <form method="post" action="/admin/delete_user" style="margin:0;">
+                <input type="hidden" name="user_id" value="{{u.id}}">
+                <button class="btnDel" type="submit" onclick="return confirm('¿Borrar usuario {{u.username}}?')">BORRAR</button>
+              </form>
+            {% endif %}
           {% endif %}
         </div>
       </div>
     {% endfor %}
   </div>
 </div>
+
+<!-- ✅ MODAL: aparece solo si se creó usuario -->
+<div id="createdModal" class="modal {% if created %}show{% endif %}">
+  <div class="modal-card">
+    <div class="modal-title">✨ USUARIO CREADO ✨</div>
+
+    <div class="mrow"><span>Usuario:</span><div id="mUser">{{ created.username if created else "" }}</div></div>
+    <div class="mrow"><span>Contraseña:</span><div id="mPass">{{ created.password if created else "" }}</div></div>
+    <div class="mrow"><span>Rol:</span><div id="mRole">{{ created.role if created else "" }}</div></div>
+    <div class="mrow"><span>URL:</span><div id="mUrl">{{ created.url if created else "" }}</div></div>
+
+    <div class="mactions">
+      <button class="mbtn" onclick="copyCreated()">COPIAR</button>
+      <button class="mbtn red" onclick="closeModal()">CERRAR</button>
+    </div>
+
+    <div class="smallcopy">Copia para enviar por WhatsApp/Telegram</div>
+  </div>
+</div>
+
+<script>
+function closeModal(){
+  document.getElementById("createdModal").classList.remove("show");
+}
+function copyCreated(){
+  const user = document.getElementById("mUser").innerText.trim();
+  const pass = document.getElementById("mPass").innerText.trim();
+  const url  = document.getElementById("mUrl").innerText.trim();
+
+  const text =
+`✨ENTEL SAC✨
+👤 User: ${user}
+🔒 Password:  ${pass}
+🌐 URL: ${url}`;
+
+  navigator.clipboard.writeText(text);
+}
+</script>
 </body>
 </html>
